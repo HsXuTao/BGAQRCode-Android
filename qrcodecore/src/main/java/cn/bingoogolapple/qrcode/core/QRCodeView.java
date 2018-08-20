@@ -46,7 +46,7 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
         mScanBoxView.init(this, attrs);
         mCameraPreview.setId(R.id.bgaqrcode_camera_preview);
         addView(mCameraPreview);
-        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(context, attrs);
+        LayoutParams layoutParams = new LayoutParams(context, attrs);
         layoutParams.addRule(RelativeLayout.ALIGN_TOP, mCameraPreview.getId());
         layoutParams.addRule(RelativeLayout.ALIGN_BOTTOM, mCameraPreview.getId());
         addView(mScanBoxView, layoutParams);
@@ -71,19 +71,19 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
         return mCameraPreview;
     }
 
-    /**
-     * 自动对焦成功后，再次对焦的延迟
-     */
-    public void setAutoFocusSuccessDelay(long autoFocusSuccessDelay) {
-        mCameraPreview.setAutoFocusSuccessDelay(autoFocusSuccessDelay);
-    }
-
-    /**
-     * 自动对焦失败后，再次对焦的延迟
-     */
-    public void setAutoFocusFailureDelay(long autoFocusFailureDelay) {
-        mCameraPreview.setAutoFocusSuccessDelay(autoFocusFailureDelay);
-    }
+//    /**
+//     * 自动对焦成功后，再次对焦的延迟
+//     */
+//    public void setAutoFocusSuccessDelay(long autoFocusSuccessDelay) {
+//        mCameraPreview.setAutoFocusSuccessDelay(autoFocusSuccessDelay);
+//    }
+//
+//    /**
+//     * 自动对焦失败后，再次对焦的延迟
+//     */
+//    public void setAutoFocusFailureDelay(long autoFocusFailureDelay) {
+//        mCameraPreview.setAutoFocusSuccessDelay(autoFocusFailureDelay);
+//    }
 
     public ScanBoxView getScanBoxView() {
         return mScanBoxView;
