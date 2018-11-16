@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
@@ -74,9 +75,11 @@ public class ZXingView extends QRCodeView {
         setupReader();
     }
 
+
     @Override
     protected ScanResult processBitmapData(Bitmap bitmap) {
-        return new ScanResult(QRCodeDecoder.syncDecodeQRCode(bitmap));
+        ScanResult scanResult = new ScanResult(QRCodeDecoder.syncDecodeQRCode(bitmap));
+        return scanResult;
     }
 
     @Override

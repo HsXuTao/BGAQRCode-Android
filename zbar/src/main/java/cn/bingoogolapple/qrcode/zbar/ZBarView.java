@@ -89,6 +89,23 @@ public class ZBarView extends QRCodeView {
     }
 
     @Override
+    protected ScanResult processBitmapData(Bitmap bitmap) {
+        try {
+            int picWidth = bitmap.getWidth();
+            int picHeight = bitmap.getHeight();
+            Image barcode = new Image(picWidth, picHeight, "RGB4");
+            int[] pix = new int[picWidth * picHeight];
+            bitmap.getPixels(pix, 0, picWidth, 0, 0, picWidth, picHeight);
+            barcode.setData(pix);
+            String result = processData(barcode.convert("Y800"));
+            return new ScanResult(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
     protected ScanResult processData(byte[] data, int width, int height, boolean isRetry) {
         Image barcode = new Image(width, height, "Y800");
 
@@ -125,22 +142,5 @@ public class ZBarView extends QRCodeView {
             }
         }
         return result;
-    }
-
-    @Override
-    protected ScanResult processBitmapData(Bitmap bitmap) {
-        try {
-            int picWidth = bitmap.getWidth();
-            int picHeight = bitmap.getHeight();
-            Image barcode = new Image(picWidth, picHeight, "RGB4");
-            int[] pix = new int[picWidth * picHeight];
-            bitmap.getPixels(pix, 0, picWidth, 0, 0, picWidth, picHeight);
-            barcode.setData(pix);
-            String result = processData(barcode.convert("Y800"));
-            return new ScanResult(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
     }
 }

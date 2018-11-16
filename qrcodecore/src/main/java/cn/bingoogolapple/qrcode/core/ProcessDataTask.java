@@ -16,16 +16,16 @@ class ProcessDataTask extends AsyncTask<Void, Void, ScanResult> {
     private WeakReference<QRCodeView> mQRCodeViewRef;
     private static long sLastStartTime = 0;
 
+    ProcessDataTask(String picturePath, QRCodeView qrCodeView) {
+        mPicturePath = picturePath;
+        mQRCodeViewRef = new WeakReference<>(qrCodeView);
+    }
+
     ProcessDataTask(Camera camera, byte[] data, QRCodeView qrCodeView, boolean isPortrait) {
         mCamera = camera;
         mData = data;
         mQRCodeViewRef = new WeakReference<>(qrCodeView);
         mIsPortrait = isPortrait;
-    }
-
-    ProcessDataTask(String picturePath, QRCodeView qrCodeView) {
-        mPicturePath = picturePath;
-        mQRCodeViewRef = new WeakReference<>(qrCodeView);
     }
 
     ProcessDataTask(Bitmap bitmap, QRCodeView qrCodeView) {
@@ -65,6 +65,7 @@ class ProcessDataTask extends AsyncTask<Void, Void, ScanResult> {
             Camera.Size size = parameters.getPreviewSize();
             width = size.width;
             height = size.height;
+
 
             if (mIsPortrait) {
                 data = new byte[mData.length];

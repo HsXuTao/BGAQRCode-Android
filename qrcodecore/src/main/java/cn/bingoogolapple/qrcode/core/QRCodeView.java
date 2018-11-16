@@ -14,6 +14,9 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.RelativeLayout;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public abstract class QRCodeView extends RelativeLayout implements Camera.PreviewCallback {
     protected Camera mCamera;
     protected CameraPreview mCameraPreview;
@@ -21,12 +24,14 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
     protected Delegate mDelegate;
     protected Handler mHandler;
     protected boolean mSpotAble = false;
-    protected ProcessDataTask mProcessDataTask;
     protected int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
     private PointF[] mLocationPoints;
     private Paint mPaint;
     protected BarcodeType mBarcodeType = BarcodeType.HIGH_FREQUENCY;
     private static long sLastPreviewFrameTime = 0;
+    private static int poolCount = Runtime.getRuntime().availableProcessors();
+    private static ExecutorService fixedThreadPool = Executors.newFixedThreadPool(poolCount);
+    private long sLastStartTime = 0;
 
     public QRCodeView(Context context, AttributeSet attributeSet) {
         this(context, attributeSet, 0);
@@ -188,10 +193,10 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
     public void stopSpot() {
         mSpotAble = false;
 
-        if (mProcessDataTask != null) {
-            mProcessDataTask.cancelTask();
-            mProcessDataTask = null;
-        }
+//        if (mProcessDataTask != null) {
+//            mProcessDataTask.cancelTask();
+//            mProcessDataTask = null;
+//        }
 
         if (mCamera != null) {
             try {
@@ -278,12 +283,75 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
             sLastPreviewFrameTime = System.currentTimeMillis();
         }
 
-        if (!mSpotAble || (mProcessDataTask != null && (mProcessDataTask.getStatus() == AsyncTask.Status.PENDING
-                || mProcessDataTask.getStatus() == AsyncTask.Status.RUNNING))) {
-            return;
-        }
+//        if (!mSpotAble || (mProcessDataTask != null && (mProcessDataTask.getStatus() == AsyncTask.Status.PENDING
+//                || mProcessDataTask.getStatus() == AsyncTask.Status.RUNNING))) {
+//            return;
+//        }
+        fixedThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+//                new ProcessDataTask(camera, data, QRCodeView.this, BGAQRCodeUtil.isPortrait(getContext())).perform();
 
-        mProcessDataTask = new ProcessDataTask(camera, data, this, BGAQRCodeUtil.isPortrait(getContext())).perform();
+                if (BGAQRCodeUtil.isDebug()) {
+                    BGAQRCodeUtil.d("两次任务执行的时间间隔：" + (System.currentTimeMillis() - sLastStartTime));
+                    sLastStartTime = System.currentTimeMillis();
+                }
+                long startTime = System.currentTimeMillis();
+
+                ScanResult scanResult = processData(data, QRCodeView.this);
+
+                if (BGAQRCodeUtil.isDebug()) {
+                    long time = System.currentTimeMillis() - startTime;
+                    if (scanResult != null && !TextUtils.isEmpty(scanResult.result)) {
+                        BGAQRCodeUtil.d("识别成功时间为：" + time);
+                    } else {
+                        BGAQRCodeUtil.e("识别失败时间为：" + time);
+                    }
+                }
+
+
+                onPostParseData(scanResult);
+            }
+
+            private ScanResult processData(byte[] mData, QRCodeView qrCodeView) {
+                int width = 0;
+                int height = 0;
+                byte[] data = mData;
+                try {
+                    Camera.Parameters parameters = mCamera.getParameters();
+                    Camera.Size size = parameters.getPreviewSize();
+                    width = size.width;
+                    height = size.height;
+                    if (BGAQRCodeUtil.isPortrait(getContext())) {
+                        data = new byte[mData.length];
+                        for (int y = 0; y < height; y++) {
+                            for (int x = 0; x < width; x++) {
+                                data[x * height + height - y - 1] = mData[x + y * width];
+                            }
+                        }
+                        int tmp = width;
+                        width = height;
+                        height = tmp;
+                    }
+
+                    return qrCodeView.processData(data, width, height, false);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                    try {
+                        if (width != 0 && height != 0) {
+                            BGAQRCodeUtil.d("识别失败重试");
+                            return qrCodeView.processData(data, width, height, true);
+                        } else {
+                            return null;
+                        }
+                    } catch (Exception e2) {
+                        e2.printStackTrace();
+                        return null;
+                    }
+                }
+            }
+        });
+
     }
 
     /**
@@ -291,8 +359,8 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
      *
      * @param picturePath 要解析的二维码图片本地路径
      */
-    public void decodeQRCode(String picturePath) {
-        mProcessDataTask = new ProcessDataTask(picturePath, this).perform();
+    public void decodeQRCode(final String picturePath) {
+        new ProcessDataTask(picturePath, QRCodeView.this).perform();
     }
 
     /**
@@ -301,7 +369,7 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
      * @param bitmap 要解析的二维码图片
      */
     public void decodeQRCode(Bitmap bitmap) {
-        mProcessDataTask = new ProcessDataTask(bitmap, this).perform();
+        new ProcessDataTask(bitmap, this).perform();
     }
 
     protected abstract ScanResult processData(byte[] data, int width, int height, boolean isRetry);
@@ -484,7 +552,7 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
     }
 
     private PointF transform(float originX, float originY, float cameraPreviewWidth, float cameraPreviewHeight, boolean isMirrorPreview, int statusBarHeight,
-            final Rect scanBoxAreaRect) {
+                             final Rect scanBoxAreaRect) {
         int viewWidth = getWidth();
         int viewHeight = getHeight();
 
@@ -517,6 +585,9 @@ public abstract class QRCodeView extends RelativeLayout implements Camera.Previe
         }
 
         return result;
+    }
+
+    public void setType(BarcodeType barcodeType, Object formatList) {
     }
 
     public interface Delegate {
